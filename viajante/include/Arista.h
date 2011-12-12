@@ -8,23 +8,40 @@
 #ifndef ARISTA_H
 #define	ARISTA_H
 
-#include "Vertice.h"
+
+//#include "Vertice.h"
+
+class Vertice;
 
 class Arista {
 public:
-    Arista(Vertice,Vertice,int);
+    Arista();
+    Arista(Vertice*,Vertice*,int);
     Arista(const Arista& orig);
     virtual ~Arista();
     
-    Vertice getInicio();
-    Vertice getFinal();
-    int getPeso();
-    bool esSeleccionada();
+    Vertice* getInicio(){
+        return inicio;
+    }
+    Vertice* getFinal(){
+        return final;
+    }
+    int getPeso(){
+        return peso;
+    }
+    int getIdInicio(){
+        return idinicio;
+    }
+    int getIdFinal(){
+        return idfinal;
+    }
+    
 private:
-    Vertice inicio;
-    Vertice final;
+    Vertice* inicio;
+    Vertice* final;
+    int idinicio;
+    int idfinal;
     int peso;
-    bool seleccionada;
     
 };
 
