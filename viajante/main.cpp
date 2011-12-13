@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <list>
 #include <vector>
+#include <climits>
 
 #include "include/Arista.h"
 #include "include/Vertice.h"
@@ -18,7 +19,7 @@
 using namespace std;
 
 /*
- * TODO: PREGUNTAR: El grafo es no dirigido? 
+ * TODO: Arreglar las comprobaciones para que sea dirigido
  * TODO: Usar una priority queue en lugar de una lista
  * TODO: PREGUNTAR: El grafo puede tener varias aristas entre los mismos vértices & distinto peso?
  * TODO: Insertar código de decisión entre 0,1,2
@@ -45,6 +46,38 @@ int getVertice(int id, Vertice vertices[], int cantidad)
     return i;
 }
 
+int pesoTotal(vector<int> solucion, Vertice vertices[], int n)
+{
+    int peso_total = 0;
+    // sacamos el elemento 0 de la solución.
+    
+
+    for(int j = 0; j < n; j++)
+    {
+        if(solucion[j] == -1 || solucion[j+1] == -1)
+            break;
+        
+        int pos = getVertice(solucion[j],vertices,n);
+        if(pos != -1)
+        {
+            Arista* aristas = vertices[pos].getAristas();
+
+            for(int i = 0; i < vertices[pos].getGrado(); i++)
+            {
+                // si hay una arista entre los nodos de la solucion
+                if(aristas[i].getIdFinal() == solucion[j+1] && aristas[i].getIdInicio() == solucion[j])
+                {
+                    peso_total += aristas[i].getPeso();
+                }
+            }
+        }
+        else
+            cerr<<"ERROR!!!!!!"<<endl;
+    }
+    
+    return peso_total;
+}
+
 bool existeArista(int vert1, int vert2, Vertice vertices[], int n)
 {
     int pos = getVertice(vert1,vertices,n);
@@ -55,7 +88,7 @@ bool existeArista(int vert1, int vert2, Vertice vertices[], int n)
 
         for(int i = 0; i< vertices[pos].getGrado(); i++)
         {
-            if(aristas[i].getIdFinal() == vert2 || aristas[i].getIdInicio() == vert2 )
+            if(aristas[i].getIdFinal() == vert2)
                 return true;
         }
     }
@@ -74,9 +107,82 @@ bool repetido(vector<int> vertices, int k, int id)
     return false;
 }
 
-void viajante(vector<int> solucion, Vertice vertices[], int n)
+// elige siempre la arista de menor peso
+int voraz(Vertice vertices[], int n)
 {
-    // tomamos como primer vértice el vértice 1.
+    vector<int> solucion(n+1, -1);
+    
+    solucion[0] = solucion [n] = 0;
+    
+    for(int j = 0; j < n; j++)
+    {
+        if(solucion[j] != -1)
+        {
+            int pos = getVertice(solucion[j],vertices,n);
+            if(pos != -1)
+            {
+                int mejor_peso= INT_MAX;
+                int mejor_arista = -1;
+                Arista* aristas = vertices[pos].getAristas();
+
+                for(int i = 0; i < vertices[pos].getGrado(); i++)
+                {
+                    if(aristas[i].getIdInicio() == solucion[j] && aristas[i].getPeso() < mejor_peso && !repetido(solucion,j+1,aristas[i].getIdFinal()))
+                    {
+                        mejor_arista = i;
+                        mejor_peso = aristas[i].getPeso();
+                    }
+                }
+
+                if(mejor_arista != -1)
+                    solucion[j+1] = aristas[mejor_arista].getIdFinal();
+            }
+        }
+        else
+        {
+            cerr<<"El algoritmo voraz no ha encontrado solución"<<endl;
+            return -1;
+        }
+    }
+    
+    cout<<"voraz devuelve: ";
+    for(int i = 0; i < n+1; i++)
+        cout<<solucion[i]<<" ";
+    cout<<" con peso total: "<<pesoTotal(solucion,vertices,n)<<endl;
+    
+    return pesoTotal(solucion,vertices,n);
+}
+
+vector<int> seleccionar(list<vector<int> > lista_sols, Vertice vertices[], int n)
+{
+    
+    vector<int> optima(n+1,-1);
+    int v_optimo = INT_MAX;
+    
+    cout<<"Posibles soluciones: "<<endl;
+    list<vector<int> >::iterator it = lista_sols.begin();
+    while(it != lista_sols.end())
+    {
+        if(pesoTotal(*it,vertices,n) < v_optimo)
+        {
+            optima = *it;
+            v_optimo = pesoTotal(*it,vertices,n);
+        }
+        
+        for(int i = 0; i < n+1; i++)
+            cout<<(*it)[i]<<" ";
+        cout<<" con peso total: "<<pesoTotal(*it,vertices,n)<<endl;
+        
+        it++;
+    }
+    
+    return optima;
+}
+
+// Función de poda: suma de los pesos desde el primer vértice hasta el primero que tenga un -1
+void viajanteRP1(vector<int>& solucion, Vertice vertices[], int n, int v_optimo = INT_MAX)
+{
+    // tomamos como primer vértice el vértice 0.
     solucion[0] = 0;
     solucion[n] = 0;
     int k = 1;
@@ -89,7 +195,7 @@ void viajante(vector<int> solucion, Vertice vertices[], int n)
     while(!lista_nodos_vivos.empty())
     {
         vector<int> nodo_vivo = lista_nodos_vivos.front();
-        k = -1;
+        k = n;
         for(int i = 0; i < n; i++)
         {
             if(nodo_vivo[i] == -1)
@@ -99,19 +205,69 @@ void viajante(vector<int> solucion, Vertice vertices[], int n)
             }
         }
         
-        if(k == -1)
+        // si el nodo que hemos extraído es un nodo solución
+        if(k == n)
         {
             lista_nodos_vivos.pop_front();
             vector<int> aux = nodo_vivo;
             if(existeArista(aux[n-1],aux[n],vertices,n))
                 lista_soluciones.push_back(aux);
-            k = 99; // TODO: poner algo más real
         }
+        else if(k < n)
+        {
             
+            lista_nodos_vivos.pop_front();
+            vector<int> aux = nodo_vivo;
+            for(int i = 0; i < n; i++)
+            {
+                if(!repetido(aux, k ,i) && existeArista(aux[k-1], i, vertices, n))
+                {
+                    aux[k] = i;
+                    if(pesoTotal(aux,vertices,n) <= v_optimo )
+                        lista_nodos_vivos.push_back(aux);
+                }
+            }
+        }
+    }
+    
+    solucion = seleccionar(lista_soluciones, vertices, n);
+
+}
+
+void viajanteBT(vector<int>& solucion, Vertice vertices[], int n)
+{
+    // tomamos como primer vértice el vértice 0.
+    solucion[0] = 0;
+    solucion[n] = 0;
+    int k = 1;
+    
+    list<vector<int> > lista_nodos_vivos;
+    lista_nodos_vivos.push_back(solucion);
+    list<vector<int> > lista_soluciones;
+    
+    // mientras tenemos nodos vivos
+    while(!lista_nodos_vivos.empty())
+    {
+        vector<int> nodo_vivo = lista_nodos_vivos.front();
+        k = n;
+        for(int i = 0; i < n; i++)
+        {
+            if(nodo_vivo[i] == -1)
+            {
+                k = i;
+                break;
+            }
+        }
         
-        
-        
-        if(k < n)
+        // si el nodo que hemos extraído es un nodo solución
+        if(k == n)
+        {
+            lista_nodos_vivos.pop_front();
+            vector<int> aux = nodo_vivo;
+            if(existeArista(aux[n-1],aux[n],vertices,n))
+                lista_soluciones.push_back(aux);
+        }
+        else if(k < n)
         {
             
             lista_nodos_vivos.pop_front();
@@ -125,54 +281,16 @@ void viajante(vector<int> solucion, Vertice vertices[], int n)
                 }
             }
         }
-//        else
-//        {
-//            for(int i = 0; i < n; i++)
-//            {
-//                cout<<lista_nodos_vivos.front()[i]<<endl;
-//            }
-//            cout<<endl;
-//            lista_nodos_vivos.pop_front();
-//        }
     }
     
-    // endbucle
+    solucion = seleccionar(lista_soluciones, vertices, n);
     
-    list<vector<int> >::iterator it = lista_soluciones.begin();
-    while(it != lista_soluciones.end())
-    {
-        for(int i = 0; i < n+1; i++)
-        {
-            cout<<(*it)[i]<<" ";
-        }
-        cout<<endl;
-        it++;
-    }
-    
-    // BACKTRACKING
-    //Si Cumple restricciones: se añade xi a la solución y se pasa a xi+1
-    //Si no cumple restricciones: se prueba otra posibilidad para xi
-    //Si No cumple restricciones y no hay más posibilidades con xi : se replantea la decisión anterior xi-1
-
-    cout<<"aquí es donde hago el problema del viajante"<<endl;
 }
 
 int main(int argc, char** argv) 
 {
-//    list<Vertice> v_grafo;
-//    list<Arista> a_grafo;
-//    list<Vertice> solucion;
+    int opcion = 1;
     
-    
-    // Creamos el grafo completo con 4 vértices y 6 aristas
-    
-//    ·___·
-//    |\ /|
-//    | X |
-//    |/ \|
-//    ·___·
-    
-//    Grafo g;
     int n = 5;
     
     Vertice entrada[n];
@@ -193,19 +311,57 @@ int main(int argc, char** argv)
 //    g.anadirArista(2,4,5);
 //    g.anadirArista(1,3,6);
     
-    Arista a1(&entrada[0],&entrada[1],1);
-    Arista a2(&entrada[1],&entrada[2],2);
-    Arista a3(&entrada[2],&entrada[3],3);
-    Arista a7(&entrada[3],&entrada[4],3);
-    Arista a4(&entrada[3],&entrada[0],4);
-    Arista a5(&entrada[1],&entrada[3],5);
-    Arista a6(&entrada[0],&entrada[2],6);
-    Arista a8(&entrada[0],&entrada[4],6);
-    Arista a9(&entrada[1],&entrada[4],6);
+    Arista a1i(&entrada[0],&entrada[1],1);
+    Arista a1v(&entrada[1],&entrada[0],2);
+//    Arista a2i(&entrada[1],&entrada[2],1);
+//    Arista a2v(&entrada[2],&entrada[1],2);
+    Arista a3v(&entrada[3],&entrada[2],2);
+    Arista a3i(&entrada[2],&entrada[3],1);
+//    Arista a4i(&entrada[3],&entrada[4],1);
+//    Arista a4v(&entrada[4],&entrada[3],2);
+//    Arista a5v(&entrada[0],&entrada[4],2);
+    Arista a5i(&entrada[4],&entrada[0],1);
+    Arista a6i(&entrada[0],&entrada[2],1);
+    Arista a6v(&entrada[2],&entrada[0],2);
+    Arista a7v(&entrada[0],&entrada[3],2);
+    Arista a7i(&entrada[3],&entrada[0],2);
+//    Arista a8i(&entrada[4],&entrada[2],2);
+    Arista a8v(&entrada[2],&entrada[4],2);
+    Arista a9v(&entrada[4],&entrada[1],2);
+    Arista a9i(&entrada[1],&entrada[4],2);
+    Arista a10i(&entrada[1],&entrada[3],2);
+//    Arista a10v(&entrada[3],&entrada[1],2);
+    
+    
+    
     
     vector<int> solucion(n+1,-1);
+    int v_optimo;
+    switch (opcion)
+    {
+        case 0: viajanteBT(solucion, entrada, n);
+                break;
+        case 1: v_optimo = voraz(entrada,n);
+                if(v_optimo != -1)
+                    viajanteRP1(solucion,entrada,n, v_optimo);
+                else
+                    viajanteRP1(solucion,entrada,n);
+                break;
+        case 2: v_optimo = voraz(entrada,n);
+//                if(v_optimo != -1)
+//                    viajanteRP2(solucion,entrada,n, v_optimo);
+//                else
+//                    viajanteRP2(solucion,entrada,n);
+                break;
+        default:
+            cerr<<"Opción introducida incorrecta, puede ser 0, 1 o 2"<<endl;
+    }
     
-    viajante(solucion, entrada, n);
+    cout<<"La solución óptima es: ";
+    for(int i = 0; i < n+1; i++)
+        cout<<solucion[i]<<" ";
+    cout<<" con peso total: "<<pesoTotal(solucion,entrada,n)<<endl;
+    
     
     return 0;
 }
