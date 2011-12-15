@@ -8,9 +8,6 @@
 #ifndef ARISTA_H
 #define	ARISTA_H
 
-
-//#include "Vertice.h"
-
 class Vertice;
 
 class Arista {
