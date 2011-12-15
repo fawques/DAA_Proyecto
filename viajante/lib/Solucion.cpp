@@ -25,17 +25,15 @@ Solucion::~Solucion() {
     peso = 0;
 }
 
-// Este operator< está implementado solo para poder insertar las soluciones en una PriorityQueue.
-// Devuelve lo que debería devolver un operator>
 bool Solucion::operator <(const Solucion& sol)
 {
     if(peso < sol.peso)
-        return false;
-    else
         return true;
+    else
+        return false;
 }
 
-int getVertice_aux(int id, Vertice vertices[], int cantidad)
+int getVertice_aux(int id, Vertice* vertices, int cantidad)
 {
     bool encontrado = false;
     int i;
@@ -54,7 +52,7 @@ int getVertice_aux(int id, Vertice vertices[], int cantidad)
     return i;
 }
 
-void Solucion::setPeso(Vertice vertices[])
+void Solucion::setPeso(Vertice* vertices)
 {
     int peso_total = 0;
     // sacamos el elemento 0 de la solución.

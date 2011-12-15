@@ -15,20 +15,18 @@ Vertice::Vertice() {
     id = -1;
 }
 
-Vertice::Vertice(int nid) {
-    visitado = false;
-    grado = 0;
-    aristas = NULL;
-    id = nid;
-}
+//Vertice::Vertice(int nid) {
+//    visitado = false;
+//    grado = 0;
+//    aristas = NULL;
+//    id = nid;
+//}
 
 Vertice::Vertice(const Vertice& orig) {
     visitado = orig.visitado;
     grado = orig.grado;
     id = orig.id;
     aristas = NULL;
-        
-    // TODO: Decidir si la copia debe copiar punteros a aristas o hacer copias de aristas
 }
 
 Vertice::~Vertice() {
@@ -37,26 +35,6 @@ Vertice::~Vertice() {
     id = 0;
     delete [] aristas;
     aristas = NULL;
-}
-
-//void Vertice::aumentarGrado()
-//{
-//    grado++;
-//}
-//
-//void Vertice::aumentarGrado(int n)
-//{
-//    grado += n;
-//}
-
-void Vertice::marcarVisitado()
-{
-    visitado = true;
-}
-
-bool Vertice::esVisitado()
-{
-    return visitado;
 }
 
 int Vertice::getGrado()

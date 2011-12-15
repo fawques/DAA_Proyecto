@@ -28,7 +28,11 @@ public:
         n = num;
     }
     
-    void setPeso(Vertice vertices[]);
+    int getPeso(){
+        return peso;
+    }
+    
+    void setPeso(Vertice* vertices);
     
     bool operator<(const Solucion& sol);
     

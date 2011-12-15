@@ -22,9 +22,6 @@ Arista::Arista(Vertice* origen ,Vertice* destino ,int pes):inicio(origen), final
     idfinal = final->getID();
     
     inicio->anadirArista(*this);
-    final->anadirArista(*this);
-    
-
 }
 
 Arista::Arista(const Arista& orig) {
