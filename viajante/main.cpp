@@ -68,27 +68,23 @@ bool leerFichero(int& opcion, int& numero_nodos, Vertice*& nodos, char* nombre)
     return tiene_aristas;
 }
 
-int getMediaPesos(Vertice* vertices, int n)
+int* getMenorPeso(Vertice* vertices, int n)
 {
-    int* media = new int[n];
+    int* menores = new int[n];
     for(int i = 0; i < n; i++)
     {
-        int aux = 0;
-            Arista* aristas = vertices[i].getAristas();
+        int aux = INT_MAX;
+        Arista* aristas = vertices[i].getAristas();
 
-            for(int j = 0; j < vertices[i].getGrado(); j++)
-            {
-                    aux += aristas[j].getPeso();
-            }
-            media[i] = aux / vertices[i].getGrado();
+        for(int j = 0; j < vertices[i].getGrado(); j++)
+        {
+            if(aristas[j].getPeso() < aux)
+                aux = aristas[j].getPeso();
+        }
+        menores[i] = aux;
     }
     
-    int devolver = 0;
-    for(int i = 0; i < n; i++)
-        devolver += media[i];
-    devolver /= n;
-    
-    return devolver;
+    return menores;
 }
 
 int getVertice(int id, Vertice* vertices, int cantidad)
@@ -238,7 +234,7 @@ int voraz(Vertice* vertices, int n)
 //    return optima;
 //}
 
-int estimarPesoTotal(Solucion sol, Vertice* vertices, int menor)
+int estimarPesoTotal(Solucion sol, Vertice* vertices, int* menor)
 {
     int peso_total = 0;
     
@@ -248,8 +244,7 @@ int estimarPesoTotal(Solucion sol, Vertice* vertices, int menor)
         
         if(sol.solucion[j] == -1 /*|| sol.solucion[j+1] == -1*/)
         {
-            if(sol.solucion[j] == -1)
-                peso_total += menor;
+            peso_total += menor[j];
         }
         else
         {
@@ -275,7 +270,7 @@ int estimarPesoTotal(Solucion sol, Vertice* vertices, int menor)
 }
 
 // Función de poda: suma de los pesos desde el primer vértice hasta el primero que tenga un -1
-void viajanteRP2(Solucion& sol, Vertice* vertices, int n, int menor_peso, int v_optimo = INT_MAX)
+void viajanteRP2(Solucion& sol, Vertice* vertices, int n, int* menor_peso, int v_optimo = INT_MAX)
 {
     int nodos_generados = 1;
     int nodos_analizados = 0;
@@ -368,8 +363,6 @@ void viajanteRP2(Solucion& sol, Vertice* vertices, int n, int menor_peso, int v_
     
     if(!lista_soluciones.empty())
         sol = lista_soluciones.top();
-    else
-        cerr<<"No hay solución válida"<<endl;
     
     cout<<"Nodos generados: "<<nodos_generados<<endl;
     cout<<"Nodos analizados: "<<nodos_analizados<<endl;
@@ -443,6 +436,7 @@ void viajanteRP1(Solucion& sol, Vertice* vertices, int n, int v_optimo = INT_MAX
         }
     }
     
+    if(!lista_soluciones.empty())
     sol = lista_soluciones.top();
     
     cout<<"Nodos generados: "<<nodos_generados<<endl;
@@ -507,8 +501,8 @@ void viajanteBT(Solucion& sol, Vertice* vertices, int n)
         }
     }
     
-//    sol = seleccionar(lista_soluciones, vertices, n);
-    sol = lista_soluciones.top();
+    if(!lista_soluciones.empty())
+        sol = lista_soluciones.top();
     
     cout<<"Nodos generados: "<<nodos_generados<<endl;
     cout<<"Nodos analizados: "<<nodos_analizados<<endl;
@@ -539,12 +533,13 @@ int main(int argc, char** argv)
                             viajanteRP1(sol,entrada,n);
                         break;
                 case 2: {
-                            int menor = getMediaPesos(entrada,n);
+                            int* menor = getMenorPeso(entrada,n);
                             v_optimo = voraz(entrada,n);
                             if(v_optimo != -1)
                                 viajanteRP2(sol,entrada,n, menor, v_optimo);
                             else
                                 viajanteRP2(sol,entrada,n, menor);
+                            delete [] menor;
                             break;
                         }
                 default:
@@ -552,7 +547,7 @@ int main(int argc, char** argv)
                     return -1;
             }
 
-            if(sol.solucion[0] != -1)
+            if(sol.solucion[1] != -1)
             {
                 cout<<"La solución óptima es: ";
                 for(int i = 0; i < n+1; i++)
@@ -561,17 +556,35 @@ int main(int argc, char** argv)
             }
             else
             {
-                cerr<<"No hay solución posible"<<endl;
+                cerr<<"No se ha encontrado solución"<<endl;
                 return -1;
             }
             
             
-//            ofstream dibujar("grafo.dot");
-//            dibujar<<
-////                system("dot ")
-////            crear el grafo en un temporal, llamar a dot y borrar el temporal
+            ofstream dibujar("grafo.dot");
+            dibujar<<"digraph A {"<<endl;
+            for(int i = 0; i < n; i++)
+            {
+                int pos = getVertice(sol.solucion[i],entrada,n);
+                Arista* aristas = entrada[pos].getAristas();
+                
+                for(int j = 0; j < entrada[pos].getGrado(); j++)
+                {
+                    dibujar<<aristas[j].getIdInicio()<<" -> "<<aristas[j].getIdFinal()<<" [label=\"";
+                    if(aristas[j].getIdInicio() == sol.solucion[i] && aristas[j].getIdFinal() == sol.solucion[i+1])
+                    {
+                        dibujar<<aristas[j].getPeso()<<"\",color=red];"<<endl;
+                    }
+                    else
+                        dibujar<<aristas[j].getPeso()<<"\"];"<<endl;
+                }           
+            }
+            dibujar<<"}"<<endl;
+            system("rm grafo.png;dot grafo.dot -o grafo.png -Tpng -Grankdir=LR;rm grafo.dot;eog grafo.png");
+            cout<<"======================="<<endl<<"Si el paquete graphviz está instalado (aplicación 'dot'), se ha creado una representación gráfica"<<endl;
             
 
+            
             delete [] entrada;
         }
         else
