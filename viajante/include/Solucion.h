@@ -34,7 +34,7 @@ public:
     
     void setPeso(Vertice* vertices);
     
-    bool operator<(const Solucion& sol);
+    bool operator<(const Solucion& sol) const;
     
     vector <int> solucion;
 private:

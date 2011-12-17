@@ -25,12 +25,14 @@ Solucion::~Solucion() {
     peso = 0;
 }
 
-bool Solucion::operator <(const Solucion& sol)
+
+// funciona como un operator>, se usa para ordenar correctamente la priority_queue
+bool Solucion::operator <(const Solucion& sol) const
 {
     if(peso < sol.peso)
-        return true;
-    else
         return false;
+    else
+        return true;
 }
 
 int getVertice_aux(int id, Vertice* vertices, int cantidad)

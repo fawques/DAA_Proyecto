@@ -37,9 +37,16 @@ public:
     }
 //    bool esInicial();
 //    bool esFinal();
-    bool esVisitado();
+    bool esVisitado(){
+        return visitado;
+    }
     
-    void marcarVisitado();
+    void marcarVisitado(){
+        visitado = true;
+    }
+    void desmarcarVisitado(){
+        visitado = false;
+    }
 //    void marcarInicial();
 //    void marcarFinal();
     

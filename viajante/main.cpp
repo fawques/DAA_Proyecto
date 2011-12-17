@@ -9,7 +9,9 @@
 #include <fstream>
 #include <cstdlib>
 #include <list>
+#include <queue>
 #include <vector>
+#include <time.h>
 #include <climits>
 #include <algorithm>
 
@@ -25,9 +27,8 @@
 using namespace std;
 
 /*
- * TODO: Arreglar las comprobaciones para que sea dirigido (comprobar)
- * NO - TODO: Usar una priority queue en lugar de una lista
- * TODO: Inventarse 2 funciones de poda (suma hasta el momento & ¿mediana?, ¿media? ...)
+ * TODO: Trazar RP1 & RP2 a ver xq son más lentos
+ * TODO: Añadir generación gráfica del grafo, con una llamada a system("dot ...")
  */
 
 void leerFichero(int& opcion, int& numero_nodos, Vertice*& nodos, char* nombre)
@@ -60,6 +61,25 @@ void leerFichero(int& opcion, int& numero_nodos, Vertice*& nodos, char* nombre)
         }
         fichero.close();
     }
+}
+
+int getMenorPeso(Vertice* vertices, int n)
+{
+    int menor_peso;
+    for(int i = 0; i < n; i++)
+    {
+        if(!vertices[i].esVisitado())
+        {
+            Arista* aristas = vertices[i].getAristas();
+
+            for(int j = 0; j < vertices[i].getGrado(); j++)
+            {
+                if(aristas[j].getPeso() < menor_peso)
+                    menor_peso = aristas[j].getPeso();
+            }
+        }
+    }
+    return menor_peso;
 }
 
 int getVertice(int id, Vertice* vertices, int cantidad)
@@ -188,43 +208,183 @@ int voraz(Vertice* vertices, int n)
     return pesoTotal(solucion,vertices,n);
 }
 
-Solucion seleccionar(list<Solucion > lista_sols, Vertice* vertices, int n)
+//Solucion seleccionar(priority_queue<Solucion > lista_sols, Vertice* vertices, int n)
+//{
+//    
+//    Solucion optima(n+1);
+//    int v_optimo = INT_MAX;
+//    
+//    list<Solucion >::iterator it = lista_sols.begin();
+//    while(it != lista_sols.end())
+//    {
+//        if(pesoTotal(it->solucion,vertices,n) < v_optimo)
+//        {
+//            optima = *it;
+//            v_optimo = pesoTotal(it->solucion,vertices,n);
+//        }
+//        
+//        it++;
+//    }
+//    
+//    return optima;
+//}
+
+int estimarPesoTotal(Solucion sol, Vertice* vertices, int menor)
 {
+    int peso_total = 0;
     
-    Solucion optima(n+1);
-    int v_optimo = INT_MAX;
-    
-    list<Solucion >::iterator it = lista_sols.begin();
-    while(it != lista_sols.end())
+
+    for(int j = 0; j < sol.getN(); j++)
     {
-        if(pesoTotal(it->solucion,vertices,n) < v_optimo)
-        {
-            optima = *it;
-            v_optimo = pesoTotal(it->solucion,vertices,n);
-        }
         
-        it++;
+        if(sol.solucion[j] == -1 /*|| sol.solucion[j+1] == -1*/)
+        {
+            if(sol.solucion[j] == -1)
+                peso_total += menor;
+        }
+        else
+        {
+            int pos = getVertice(sol.solucion[j],vertices,sol.getN());
+            if(pos != -1)
+            {
+                Arista* aristas = vertices[pos].getAristas();
+
+                for(int i = 0; i < vertices[pos].getGrado(); i++)
+                {
+                    // si hay una arista entre los nodos de la solucion
+                    if(aristas[i].getIdFinal() == sol.solucion[j+1] && aristas[i].getIdInicio() == sol.solucion[j])
+                    {
+                        peso_total += aristas[i].getPeso();
+                    }
+                }
+            }
+            else
+                cerr<<"ERROR!!!!!!"<<endl;
+        }
     }
-    
-    return optima;
+    return peso_total;
 }
 
 // Función de poda: suma de los pesos desde el primer vértice hasta el primero que tenga un -1
-void viajanteRP1(Solucion& sol, Vertice* vertices, int n, int v_optimo = INT_MAX)
+void viajanteRP2(Solucion& sol, Vertice* vertices, int n, int menor_peso, int v_optimo = INT_MAX)
 {
+    int nodos_generados = 1;
+    int nodos_analizados = 0;
+    int nodos_podados = 0;
+    
+    
     // tomamos como primer vértice el vértice 0.
     sol.solucion[0] = 0;
     sol.solucion[n] = 0;
     int k = 1;
     
-    list<Solucion > lista_nodos_vivos;
-    lista_nodos_vivos.push_back(sol);
-    list<Solucion > lista_soluciones;
+    priority_queue<Solucion > lista_nodos_vivos;
+    lista_nodos_vivos.push(sol);
+    priority_queue<Solucion > lista_soluciones;
     
     // mientras tenemos nodos vivos
     while(!lista_nodos_vivos.empty())
     {
-        Solucion nodo_vivo = lista_nodos_vivos.front();
+        Solucion nodo_vivo = lista_nodos_vivos.top();
+        k = n;
+        for(int i = 0; i < n; i++)
+            vertices[i].desmarcarVisitado();
+        
+        for(int i = 0; i < n; i++)
+        {
+            if(nodo_vivo.solucion[i] == -1)
+            {
+                k = i;
+                break;
+            }
+            else
+            {
+                int pos = getVertice(nodo_vivo.solucion[i], vertices, n);
+                vertices[pos].marcarVisitado();
+            }
+        }
+       
+        
+        // si el nodo que hemos extraído es un nodo solución
+        if(k == n)
+        {
+            lista_nodos_vivos.pop();
+            Solucion aux = nodo_vivo;
+            
+            if(existeArista(aux.solucion[n-1],aux.solucion[n],vertices,n) 
+                    && estimarPesoTotal(aux,vertices,menor_peso) <= v_optimo )
+            {
+                aux.setPeso(vertices);
+                v_optimo = aux.getPeso();
+                lista_soluciones.push(aux);
+            }
+            
+        }
+        else if(k < n)
+        {
+            nodos_analizados++;
+            lista_nodos_vivos.pop();
+            Solucion aux = nodo_vivo;
+            
+            for(int i = 0; i < n; i++)
+            {
+                
+                if(!repetido(aux.solucion, k ,i) && existeArista(aux.solucion[k-1], i, vertices, n))
+                {
+                    aux.solucion[k] = i;
+//                    clock_t t1 = clock();
+                    
+                    if(estimarPesoTotal(aux,vertices,menor_peso) <= v_optimo )
+                    {
+                        
+                        aux.setPeso(vertices);   
+                        lista_nodos_vivos.push(aux);
+
+                        nodos_generados++;
+//                        lista_nodos_vivos.sort();
+                    }
+                    else
+                        nodos_podados++;
+                    
+//                    clock_t t2 = clock();
+//                    cout<<"Ha tardado: "<<t2-t1<<endl;
+                }
+                    
+                
+            }
+            
+                 
+        }
+    }
+    
+    sol = lista_soluciones.top();
+    
+    cout<<"Nodos generados: "<<nodos_generados<<endl;
+    cout<<"Nodos analizados: "<<nodos_analizados<<endl;
+    cout<<"Nodos podados: "<<nodos_podados<<endl;
+
+}
+
+// Función de poda: suma de los pesos desde el primer vértice hasta el primero que tenga un -1
+void viajanteRP1(Solucion& sol, Vertice* vertices, int n, int v_optimo = INT_MAX)
+{
+    int nodos_generados = 1;
+    int nodos_analizados = 0;
+    int nodos_podados = 0;
+    
+    // tomamos como primer vértice el vértice 0.
+    sol.solucion[0] = 0;
+    sol.solucion[n] = 0;
+    int k = 1;
+    
+    priority_queue<Solucion > lista_nodos_vivos;
+    lista_nodos_vivos.push(sol);
+    priority_queue<Solucion > lista_soluciones;
+    
+    // mientras tenemos nodos vivos
+    while(!lista_nodos_vivos.empty())
+    {
+        Solucion nodo_vivo = lista_nodos_vivos.top();
         k = n;
         for(int i = 0; i < n; i++)
         {
@@ -238,20 +398,19 @@ void viajanteRP1(Solucion& sol, Vertice* vertices, int n, int v_optimo = INT_MAX
         // si el nodo que hemos extraído es un nodo solución
         if(k == n)
         {
-            lista_nodos_vivos.pop_front();
+            lista_nodos_vivos.pop();
             Solucion aux = nodo_vivo;
             if(existeArista(aux.solucion[n-1],aux.solucion[n],vertices,n) && pesoTotal(aux.solucion,vertices,n) <= v_optimo )
             {
                 aux.setPeso(vertices);
                 v_optimo = aux.getPeso();
-                lista_soluciones.push_back(aux);
-                lista_soluciones.sort();
+                lista_soluciones.push(aux);
             }
         }
         else if(k < n)
         {
-            
-            lista_nodos_vivos.pop_front();
+            nodos_analizados++;
+            lista_nodos_vivos.pop();
             Solucion aux = nodo_vivo;
             for(int i = 0; i < n; i++)
             {
@@ -261,33 +420,43 @@ void viajanteRP1(Solucion& sol, Vertice* vertices, int n, int v_optimo = INT_MAX
                     if(pesoTotal(aux.solucion,vertices,n) <= v_optimo )
                     {
                         aux.setPeso(vertices);   
-                        lista_nodos_vivos.push_back(aux);
-                        lista_nodos_vivos.sort();
+                        lista_nodos_vivos.push(aux);
+//                        lista_nodos_vivos.sort();
+                        nodos_generados++;
                     }
+                    else
+                        nodos_podados++;
                 }
             }
         }
     }
     
-    sol = seleccionar(lista_soluciones, vertices, n);
-
+    sol = lista_soluciones.top();
+    
+    cout<<"Nodos generados: "<<nodos_generados<<endl;
+    cout<<"Nodos analizados: "<<nodos_analizados<<endl;
+    cout<<"Nodos podados: "<<nodos_podados<<endl;
+    
 }
 
 void viajanteBT(Solucion& sol, Vertice* vertices, int n)
 {
+    int nodos_generados = 1;
+    int nodos_analizados = 0;
+    
     // tomamos como primer vértice el vértice 0.
     sol.solucion[0] = 0;
     sol.solucion[n] = 0;
     int k = 1;
     
-    list<Solucion> lista_nodos_vivos;
-    lista_nodos_vivos.push_back(sol);
-    list<Solucion> lista_soluciones;
+    priority_queue<Solucion> lista_nodos_vivos;
+    lista_nodos_vivos.push(sol);
+    priority_queue<Solucion> lista_soluciones;
     
     // mientras tenemos nodos vivos
     while(!lista_nodos_vivos.empty())
     {
-        Solucion nodo_vivo = lista_nodos_vivos.front();
+        Solucion nodo_vivo = lista_nodos_vivos.top();
         k = n;
         for(int i = 0; i < n; i++)
         {
@@ -301,30 +470,36 @@ void viajanteBT(Solucion& sol, Vertice* vertices, int n)
         // si el nodo que hemos extraído es un nodo solución
         if(k == n)
         {
-            lista_nodos_vivos.pop_front();
+            lista_nodos_vivos.pop();
             Solucion aux = nodo_vivo;
             if(existeArista(aux.solucion[n-1],aux.solucion[n],vertices,n))
             {
-                lista_soluciones.push_back(aux);
+                lista_soluciones.push(aux);
             }
         }
         else if(k < n)
         {
-            
-            lista_nodos_vivos.pop_front();
+            nodos_analizados++;
+            lista_nodos_vivos.pop();
             Solucion aux = nodo_vivo;
             for(int i = 0; i < n; i++)
             {
                 if(!repetido(aux.solucion, k ,i) && existeArista(aux.solucion[k-1], i, vertices, n))
                 {
                     aux.solucion[k] = i;
-                    lista_nodos_vivos.push_back(aux);
+                    aux.setPeso(vertices);  
+                    lista_nodos_vivos.push(aux);
+                    nodos_generados++;
                 }
             }
         }
     }
     
-    sol = seleccionar(lista_soluciones, vertices, n);
+//    sol = seleccionar(lista_soluciones, vertices, n);
+    sol = lista_soluciones.top();
+    
+    cout<<"Nodos generados: "<<nodos_generados<<endl;
+    cout<<"Nodos analizados: "<<nodos_analizados<<endl;
     
 }
 
@@ -339,6 +514,7 @@ int main(int argc, char** argv)
 
         Solucion sol(n);
         int v_optimo;
+        cout<<"Modo de ejecución "<<opcion<<endl;
         switch (opcion)
         {
             case 0: viajanteBT(sol, entrada, n);
@@ -349,12 +525,15 @@ int main(int argc, char** argv)
                     else
                         viajanteRP1(sol,entrada,n);
                     break;
-            case 2: v_optimo = voraz(entrada,n);
-    //                if(v_optimo != -1)
-    //                    viajanteRP2(solucion,entrada,n, v_optimo);
-    //                else
-    //                    viajanteRP2(solucion,entrada,n);
-                    break;
+            case 2: {
+                        int menor = getMenorPeso(entrada,n);
+                        v_optimo = voraz(entrada,n);
+                        if(v_optimo != -1)
+                            viajanteRP2(sol,entrada,n, menor, v_optimo);
+                        else
+                            viajanteRP2(sol,entrada,n, menor);
+                        break;
+                    }
             default:
                 cerr<<"Opción introducida incorrecta, puede ser 0, 1 o 2"<<endl;
                 return -1;
