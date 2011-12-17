@@ -31,8 +31,9 @@ using namespace std;
  * TODO: Añadir generación gráfica del grafo, con una llamada a system("dot ...")
  */
 
-void leerFichero(int& opcion, int& numero_nodos, Vertice*& nodos, char* nombre)
+bool leerFichero(int& opcion, int& numero_nodos, Vertice*& nodos, char* nombre)
 {
+    bool tiene_aristas = true;
     ifstream fichero(nombre);
     
     if(fichero)
@@ -47,39 +48,47 @@ void leerFichero(int& opcion, int& numero_nodos, Vertice*& nodos, char* nombre)
             nodos[i].setId(i);
         }
         
-        for(int i = 0; i < numero_nodos; i++)
+        for(int i = 0; i < numero_nodos && tiene_aristas; i++)
         {   
+            tiene_aristas = false;
             for(int j = 0; j < numero_nodos; j++)
             {   
                 int aux;
                 fichero>>aux;
-                if(i != j && aux != -1)
+                if(i != j && aux != -1){
                     Arista arista_aux(&nodos[i], &nodos[j],aux);
-                
+                    tiene_aristas = true;
+                }
             }
-            
+            if(!tiene_aristas)
+                cerr<<"Hay un nodo desconectado. No hay camino posible"<<endl;
         }
         fichero.close();
     }
+    return tiene_aristas;
 }
 
-int getMenorPeso(Vertice* vertices, int n)
+int getMediaPesos(Vertice* vertices, int n)
 {
-    int menor_peso;
+    int* media = new int[n];
     for(int i = 0; i < n; i++)
     {
-        if(!vertices[i].esVisitado())
-        {
+        int aux = 0;
             Arista* aristas = vertices[i].getAristas();
 
             for(int j = 0; j < vertices[i].getGrado(); j++)
             {
-                if(aristas[j].getPeso() < menor_peso)
-                    menor_peso = aristas[j].getPeso();
+                    aux += aristas[j].getPeso();
             }
-        }
+            media[i] = aux / vertices[i].getGrado();
     }
-    return menor_peso;
+    
+    int devolver = 0;
+    for(int i = 0; i < n; i++)
+        devolver += media[i];
+    devolver /= n;
+    
+    return devolver;
 }
 
 int getVertice(int id, Vertice* vertices, int cantidad)
@@ -357,7 +366,10 @@ void viajanteRP2(Solucion& sol, Vertice* vertices, int n, int menor_peso, int v_
         }
     }
     
-    sol = lista_soluciones.top();
+    if(!lista_soluciones.empty())
+        sol = lista_soluciones.top();
+    else
+        cerr<<"No hay solución válida"<<endl;
     
     cout<<"Nodos generados: "<<nodos_generados<<endl;
     cout<<"Nodos analizados: "<<nodos_analizados<<endl;
@@ -510,49 +522,60 @@ int main(int argc, char** argv)
         int opcion = -1;
         int n = 0;
         Vertice* entrada = NULL;
-        leerFichero(opcion,n,entrada, argv[1]);
-
-        Solucion sol(n);
-        int v_optimo;
-        cout<<"Modo de ejecución "<<opcion<<endl;
-        switch (opcion)
+        if(leerFichero(opcion,n,entrada, argv[1]))
         {
-            case 0: viajanteBT(sol, entrada, n);
-                    break;
-            case 1: v_optimo = voraz(entrada,n);
-                    if(v_optimo != -1)
-                        viajanteRP1(sol,entrada,n, v_optimo);
-                    else
-                        viajanteRP1(sol,entrada,n);
-                    break;
-            case 2: {
-                        int menor = getMenorPeso(entrada,n);
-                        v_optimo = voraz(entrada,n);
-                        if(v_optimo != -1)
-                            viajanteRP2(sol,entrada,n, menor, v_optimo);
-                        else
-                            viajanteRP2(sol,entrada,n, menor);
+
+            Solucion sol(n);
+            int v_optimo;
+            cout<<"Modo de ejecución "<<opcion<<endl;
+            switch (opcion)
+            {
+                case 0: viajanteBT(sol, entrada, n);
                         break;
-                    }
-            default:
-                cerr<<"Opción introducida incorrecta, puede ser 0, 1 o 2"<<endl;
-                return -1;
-        }
+                case 1: v_optimo = voraz(entrada,n);
+                        if(v_optimo != -1)
+                            viajanteRP1(sol,entrada,n, v_optimo);
+                        else
+                            viajanteRP1(sol,entrada,n);
+                        break;
+                case 2: {
+                            int menor = getMediaPesos(entrada,n);
+                            v_optimo = voraz(entrada,n);
+                            if(v_optimo != -1)
+                                viajanteRP2(sol,entrada,n, menor, v_optimo);
+                            else
+                                viajanteRP2(sol,entrada,n, menor);
+                            break;
+                        }
+                default:
+                    cerr<<"Opción introducida incorrecta, puede ser 0, 1 o 2"<<endl;
+                    return -1;
+            }
 
-        if(sol.solucion[0] != -1)
-        {
-            cout<<"La solución óptima es: ";
-            for(int i = 0; i < n+1; i++)
-                cout<<sol.solucion[i]<<" ";
-            cout<<" con peso total: "<<pesoTotal(sol.solucion,entrada,n)<<endl;
+            if(sol.solucion[0] != -1)
+            {
+                cout<<"La solución óptima es: ";
+                for(int i = 0; i < n+1; i++)
+                    cout<<sol.solucion[i]<<" ";
+                cout<<" con peso total: "<<pesoTotal(sol.solucion,entrada,n)<<endl;
+            }
+            else
+            {
+                cerr<<"No hay solución posible"<<endl;
+                return -1;
+            }
+            
+            
+//            ofstream dibujar("grafo.dot");
+//            dibujar<<
+////                system("dot ")
+////            crear el grafo en un temporal, llamar a dot y borrar el temporal
+            
+
+            delete [] entrada;
         }
         else
-        {
-            cerr<<"No hay solución posible"<<endl;
             return -1;
-        }
-        
-        delete [] entrada;
     }
     else
     {
