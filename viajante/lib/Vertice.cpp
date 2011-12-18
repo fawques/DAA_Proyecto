@@ -6,31 +6,21 @@
  */
 
 #include "../include/Vertice.h"
-#include "../include/Arista.h"
+
 
 Vertice::Vertice() {
-    visitado = false;
     grado = 0;
     aristas = NULL;
     id = -1;
 }
 
-//Vertice::Vertice(int nid) {
-//    visitado = false;
-//    grado = 0;
-//    aristas = NULL;
-//    id = nid;
-//}
-
 Vertice::Vertice(const Vertice& orig) {
-    visitado = orig.visitado;
     grado = orig.grado;
     id = orig.id;
     aristas = NULL;
 }
 
 Vertice::~Vertice() {
-    visitado = false;
     grado = 0;
     id = 0;
     delete [] aristas;

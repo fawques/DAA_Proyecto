@@ -12,8 +12,13 @@ class Vertice;
 
 class Arista {
 public:
+    // Constructor por defecto
     Arista();
+    
+    // Constructor sobrecargado. Llama a anadirArista del vértice origen
     Arista(Vertice*,Vertice*,int);
+    
+    // Constructor de copia. Copia los punteros, no el contenido
     Arista(const Arista& orig);
     virtual ~Arista();
     

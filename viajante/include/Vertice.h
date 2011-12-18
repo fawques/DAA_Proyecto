@@ -10,20 +10,28 @@
 #ifndef VERTICE_H
 #define	VERTICE_H
 
-//#include "Arista.h"
+
 #include <iostream>
 #include <cstdlib>
-#include <cstdio>
+
+#include "Arista.h"
 
 using namespace std;
 
 class Arista;
 
+/* La clase Vertice modela un vértice del grafo. Posee un id y un vector de aristas
+ *      que guarda las aristas que parten del vértice.
+ */
 class Vertice {
 public:
+    // Constructor por defecto. Crea un vértice con id -1 y vector NULL
     Vertice();
-    Vertice(int id);
+
+    // Constructor de copia. NO copia el vector de aristas, lo deja a NULL
     Vertice(const Vertice& orig);
+    
+    // Destructor
     virtual ~Vertice();
     
     int getGrado();
@@ -35,26 +43,8 @@ public:
     {
         id = nid;
     }
-//    bool esInicial();
-//    bool esFinal();
-    bool esVisitado(){
-        return visitado;
-    }
     
-    void marcarVisitado(){
-        visitado = true;
-    }
-    void desmarcarVisitado(){
-        visitado = false;
-    }
-//    void marcarInicial();
-//    void marcarFinal();
-    
-//     aumenta el grado en n
-//    void aumentarGrado(int n);
-//     aumenta el grado en 1
-//    void aumentarGrado();
-    
+    // añade una arista al vector, gestionando los límites de tamaño
     void anadirArista(Arista ar);
     
     Arista* getAristas();
@@ -63,9 +53,6 @@ public:
 private:
     
     int id;
-    bool visitado;
-//    bool inicial;
-//    bool final;
     int grado;
     Arista* aristas;
 

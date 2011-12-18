@@ -35,6 +35,7 @@ bool Solucion::operator <(const Solucion& sol) const
         return true;
 }
 
+// Función auxiliar. Hace exactamente lo mismo que getVertice en main
 int getVertice_aux(int id, Vertice* vertices, int cantidad)
 {
     bool encontrado = false;
@@ -56,9 +57,7 @@ int getVertice_aux(int id, Vertice* vertices, int cantidad)
 
 void Solucion::setPeso(Vertice* vertices)
 {
-    int peso_total = 0;
-    // sacamos el elemento 0 de la solución.
-    
+    int peso_total = 0;    
 
     for(int j = 0; j < n; j++)
     {
