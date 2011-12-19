@@ -350,6 +350,7 @@ void viajanteRP2(Solucion& sol, Vertice* vertices, int n, int* menor_peso, int v
                 aux.setPeso(vertices);
                 v_optimo = aux.getPeso();
                 lista_soluciones.push(aux);
+                break;
             }
             
         }
@@ -439,6 +440,7 @@ void viajanteRP1(Solucion& sol, Vertice* vertices, int n, int v_optimo = INT_MAX
                 aux.setPeso(vertices);
                 v_optimo = aux.getPeso();
                 lista_soluciones.push(aux);
+                break;
             }
         }
         else // si k es < n
@@ -602,7 +604,7 @@ int main(int argc, char** argv)
                 return -1;
             }
             
-            dibujar(sol,entrada,n);
+//            dibujar(sol,entrada,n);
             
             delete [] entrada;
         }
