@@ -583,7 +583,7 @@ int main(int argc, char** argv)
                                 viajanteRP2(sol,entrada,n, menor, v_optimo);
                             else
                                 viajanteRP2(sol,entrada,n, menor);
-                            delete [] menor;
+//                            delete [] menor;
                             break;
                         }
                 default:
@@ -606,7 +606,7 @@ int main(int argc, char** argv)
             
 //            dibujar(sol,entrada,n);
             
-            delete [] entrada;
+//            delete [] entrada;
         }
         else
             return -1;

@@ -23,7 +23,7 @@ Vertice::Vertice(const Vertice& orig) {
 Vertice::~Vertice() {
     grado = 0;
     id = 0;
-    delete [] aristas;
+//    delete [] aristas;
     aristas = NULL;
 }
 
