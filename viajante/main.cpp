@@ -604,7 +604,7 @@ int main(int argc, char** argv)
                 return -1;
             }
             
-//            dibujar(sol,entrada,n);
+            dibujar(sol,entrada,n);
             
             delete [] entrada;
         }
